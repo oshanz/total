@@ -22,39 +22,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require_relative 'total/linux'
-require_relative 'total/osx'
-
-# Total is a simple class to detect the total amount of memory in the system.
-#
-#  require 'total'
-#  bytes = Total::Mem.new.bytes
-#
-# For more information read
-# {README}[https://github.com/yegor256/total/blob/master/README.md] file.
+# Windows specific.
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2018 Yegor Bugayenko
 # License:: MIT
 module Total
-  # When it's impossible to detect something.
-  class CantDetect < StandardError; end
-
-  # Memory specifics.
-  class Mem
-    # Get it in bytes.
-    def bytes
-      target.memory
-    end
-
-    private
-
-    # Target object to calculate memory size.
-    def target
-      return Total::OSX.new if RUBY_PLATFORM.include?('darwin')
-      return Total::Linux.new if RUBY_PLATFORM.include?('linux')
-      return Total::Windows.new if RUBY_PLATFORM.include?('mswin')
-      raise CantDetect, "Can\'t detect operating system: #{RUBY_PLATFORM}"
+  # Windows specifics.
+  class Windows
+    # Get the total in bytes
+    def memory
+      begin
+        `systeminfo | findstr /C:"Total Physical Memory`.split("\n").each do |t|
+          return t.split(' ')[1].to_i if t.start_with?('Total Physical Memory:')
+        end
+      rescue Errno::ENOENT => e
+        raise CantDetect, e.message
+      end
+      raise CantDetect, 'Can\'t detect memory size via systeminfo'
     end
   end
 end
